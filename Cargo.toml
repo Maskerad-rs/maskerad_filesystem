@@ -1,0 +1,15 @@
+[package]
+name = "maskerad_filesystem"
+version = "0.1.0"
+authors = ["Maskerad developers - <maskerad-rs.organization@protonmail.com>"]
+description = "Maskerad game engine's filesystem"
+license = "MIT/Apache-2.0"
+repository = "https://github.com/Maskerad-rs/maskerad_filesystem"
+keywords = ["filesystem"]
+categories = ["Filesystem"]
+readme = "README_CRATE.md"
+
+[badges]
+
+
+[dependencies]
