@@ -1,6 +1,13 @@
 # maskerad_filesystem
 Maskerad game engine's filesystem.
 
+[![codecov](https://codecov.io/gh/Maskerad-rs/maskerad_filesystem/branch/master/graph/badge.svg)](https://codecov.io/gh/Maskerad-rs/maskerad_filesystem) 
+[![Build Status](https://travis-ci.org/Maskerad-rs/maskerad_filesystem.svg?branch=master)](https://travis-ci.org/Maskerad-rs/maskerad_filesystem)
+[![Build status](https://ci.appveyor.com/api/projects/status/x5ob496ndyydqn86?svg=true)](https://ci.appveyor.com/project/Malkaviel/maskerad-filesystem)
+
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## License
 
