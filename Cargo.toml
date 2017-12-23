@@ -10,6 +10,12 @@ categories = ["Filesystem"]
 readme = "README_CRATE.md"
 
 [badges]
-
+appveyor = { repository = "Malkaviel/maskerad-filesystem", branch = "master", service = "github" }
+travis-ci = { repository = "Maskerad-rs/maskerad_filesystem", branch = "master" }
+codecov = { repository = "Maskerad-rs/Maskerad_filesystem", branch = "master", service = "github" }
+is-it-maintained-issue-resolution = { repository = "Maskerad-rs/maskerad_filesystem" }
+is-it-maintained-open-issues = { repository = "Maskerad-rs/maskerad_filesystem" }
+maintenance = { status = "actively-developed" }
 
 [dependencies]
+remove_dir_all = "0.3.0"

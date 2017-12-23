@@ -5,10 +5,4 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-extern crate remove_dir_all;
-
-pub mod filesystem_error;
-pub mod game_directories;
-pub mod game_infos;
-pub mod platforms;
-pub mod filesystem_interface;
+pub mod unix_filesystem;

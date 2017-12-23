@@ -9,6 +9,11 @@ Maskerad game engine's filesystem.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+**[Early development]**
+
+This library provides a cross-platform filesystem and follows, for the moment, a **"convention over configuration"**
+approach.
+
 ## License
 
 Licensed under either of
