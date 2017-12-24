@@ -10,7 +10,7 @@ use std::io::{Read, Seek, Write};
 use std::fmt;
 
 use game_infos::GameInfos;
-use filesystem_error::{FileSystemResult};
+use filesystem_error::{FileSystemResult, FileSystemError};
 
 //Enum used to specify the 'root' directory from where to write/delete/open dir/files
 #[derive(Debug, Copy, Clone)]
@@ -153,4 +153,46 @@ pub trait VFilesystem {
     //Retrieve all file entries in the given directory (recursive).
     //Arc because FS threadpool asks FS to give him. But workers in others threads.
     fn read_dir(&self, root_dir: RootDir, path: &str) -> FileSystemResult<fs::ReadDir>;
+
+    fn read_file(&self, root_dir: RootDir, path: &str, buf: &mut [u8]) -> FileSystemResult<usize> {
+        self.open(root_dir, path)?.read(buf).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
+    }
+
+    fn read_file_to_end(&self, root_dir: RootDir, path: &str, buf: &mut Vec<u8>) -> FileSystemResult<usize> {
+        self.open(root_dir, path)?.read_to_end(buf).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
+    }
+
+    fn read_file_to_string(&self, root_dir: RootDir, path: &str, buf: &mut String) -> FileSystemResult<usize> {
+        self.open(root_dir, path)?.read_to_string(buf).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
+    }
+
+    fn write_to_file(&self, root_dir: RootDir, path: &str, buf: &[u8]) -> FileSystemResult<usize> {
+        self.create(root_dir, path)?.write(buf).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
+    }
+
+    fn write_all_to_file(&self, root_dir: RootDir, path: &str, buf: &[u8]) -> FileSystemResult<()> {
+        self.create(root_dir, path)?.write_all(buf).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
+    }
+
+    fn append_to_file(&self, root_dir: RootDir, path: &str, buf: &[u8]) -> FileSystemResult<usize> {
+        self.append(root_dir, path)?.write(buf).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
+    }
+
+    fn append_all_to_file(&self, root_dir: RootDir, path: &str, buf: &[u8]) -> FileSystemResult<()> {
+        self.append(root_dir, path)?.write_all(buf).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
+    }
 }

@@ -41,6 +41,8 @@ pub struct Filesystem {
     game_directories: GameDirectories,
 }
 
+//TODO: We'll probably want to move the directories functionality in the resource manager. The filesystem shouldn't know about stuff like that.
+
 impl Filesystem {
 
     //create the filesystem and the root directory (the current directory).
@@ -107,28 +109,37 @@ impl VFilesystem for Filesystem {
             .to_fs_openoptions()
             .open(absolute_path.as_path())
             .map(|file| Box::new(file) as Box<VFile>).
-            map_err(FileSystemError::from)
+            map_err(|io_error| {
+                FileSystemError::from(io_error)
+            })
     }
 
     fn mkdir(&self, root_dir: RootDir, path: &str) -> FileSystemResult<()> {
         let absolute_path = self.get_absolute_path(root_dir, path);
-        println!("creating directory {}", absolute_path.display());
-        fs::DirBuilder::new().recursive(true).create(absolute_path.as_path()).map_err(FileSystemError::from)
+        fs::DirBuilder::new().recursive(true).create(absolute_path.as_path()).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
     }
 
     fn rm(&self, root_dir: RootDir, path: &str) -> FileSystemResult<()> {
         let absolute_path = self.get_absolute_path(root_dir, path);
         if absolute_path.is_dir() {
-            fs::remove_dir(path).map_err(FileSystemError::from)
+            fs::remove_dir(path).map_err(|io_error| {
+                FileSystemError::from(io_error)
+            })
         } else {
-            fs::remove_file(path).map_err(FileSystemError::from)
+            fs::remove_file(path).map_err(|io_error| {
+                FileSystemError::from(io_error)
+            })
         }
     }
 
     fn rmrf(&self, root_dir: RootDir, path: &str) -> FileSystemResult<()> {
         if self.exists(root_dir, path) {
             let absolute_path = self.get_absolute_path(root_dir, path);
-            remove_dir_all::remove_dir_all(absolute_path.as_path()).map_err(FileSystemError::from)
+            remove_dir_all::remove_dir_all(absolute_path.as_path()).map_err(|io_error| {
+                FileSystemError::from(io_error)
+            })
         } else {
             Ok(())
         }
@@ -142,13 +153,17 @@ impl VFilesystem for Filesystem {
         let absolute_path = self.get_absolute_path(root_dir, path);
         absolute_path.metadata().map(|m| {
             Box::new(Metadata(m)) as Box<VMetadata>
-        }).map_err(FileSystemError::from)
+        }).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
     }
 
     fn read_dir(&self, root_dir: RootDir, path: &str) -> FileSystemResult<fs::ReadDir> {
         let absolute_path = self.get_absolute_path(root_dir, path);
 
-        fs::read_dir(absolute_path.as_path()).map_err(FileSystemError::from)
+        fs::read_dir(absolute_path.as_path()).map_err(|io_error| {
+            FileSystemError::from(io_error)
+        })
     }
 }
 

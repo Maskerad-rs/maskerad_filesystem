@@ -11,6 +11,7 @@ use std::io::Error as IOError;
 use std::env::VarError;
 
 
+//TODO: probably an async error type.
 #[derive(Debug)]
 pub enum FileSystemError {
     GameDirectoryError(String),
