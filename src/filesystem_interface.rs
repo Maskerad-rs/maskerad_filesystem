@@ -195,4 +195,6 @@ pub trait VFilesystem {
             FileSystemError::from(io_error)
         })
     }
+
+    //TODO: Asynchronous stuff.
 }

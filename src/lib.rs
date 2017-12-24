@@ -6,6 +6,7 @@
 // copied, modified, or distributed except according to those terms.
 
 extern crate remove_dir_all;
+extern crate rayon;
 
 pub mod filesystem_error;
 pub mod game_directories;
