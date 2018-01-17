@@ -5,13 +5,14 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-extern crate remove_dir_all;
-extern crate rayon;
+use std::io::{Read, Seek, Write};
+use std::fmt;
 
-pub mod filesystem_error;
-pub mod game_directories;
-pub mod game_infos;
-pub mod filesystem;
-pub mod metadata;
-pub mod files;
-pub mod open_options;
+/*
+
+//We create a VFile trait to pave the way to different type of files.
+pub trait VFile: Read + Seek + Write + fmt::Debug {}
+//TODO: Think about the different types of files (StreamableTexture ? MusicFile ? ShaderFile ? LogFile ?)
+impl<T: Read + Seek + Write + fmt::Debug> VFile for T {}
+
+*/

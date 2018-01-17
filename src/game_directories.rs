@@ -1,28 +1,33 @@
-// Copyright 2017 Maskerad Developers
+// Copyright 2017-2018 Maskerad Developers
 //
 // Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
 // http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+use std::collections::HashMap;
+
 use std::path::PathBuf;
 use std::env;
 use game_infos::GameInfos;
-use filesystem_error::{FileSystemResult};
+use filesystem_error::{FileSystemResult, FileSystemError};
 
-//A collection of paths used by the game engine's filesystem.
-#[derive(Debug)]
-pub struct GameDirectories {
-    user_config_path: PathBuf,
-    user_data_path: PathBuf,
-    logs_path: PathBuf,
-    engine_configuration_path: PathBuf,
-    saves_path: PathBuf,
-    current_path: PathBuf,
+//Enum used to specify the 'root' directory from where to write/delete/open dir/files
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub enum RootDir {
+    WorkingDirectory,
+    UserDataRoot,
+    UserConfigRoot,
+    UserEngineConfigurationRoot,
+    UserLogRoot,
+    UserSaveRoot,
 }
 
+#[derive(Debug)]
+pub struct GameDirectories(HashMap<RootDir, PathBuf>);
+
 impl GameDirectories {
-    pub fn new(game_infos: &GameInfos) -> FileSystemResult<Self> {
+    pub fn new(game_infos: GameInfos) -> FileSystemResult<Self> {
 
         let user_config = if cfg!(target_os = "windows") {
             let appdata = env::var("APPDATA")?;
@@ -45,38 +50,32 @@ impl GameDirectories {
         };
 
         let mut logs = user_config.clone();
-        logs.push("blacksmith_logs");
+        logs.push("maskerad_logs");
         let mut engine_config = user_config.clone();
-        engine_config.push("blacksmith_configuration");
+        engine_config.push("maskerad_configuration");
         let mut saves = user_data.clone();
         saves.push("game_saves");
         let current = env::current_dir()?;
 
-        Ok(GameDirectories {
-            user_config_path: user_config,
-            user_data_path: user_data,
-            logs_path: logs,
-            engine_configuration_path: engine_config,
-            saves_path: saves,
-            current_path: current,
-        })
+        let mut directories = HashMap::with_capacity(6);
+        directories.insert(RootDir::WorkingDirectory, current);
+        directories.insert(RootDir::UserDataRoot, user_data);
+        directories.insert(RootDir::UserConfigRoot, user_config);
+        directories.insert(RootDir::UserEngineConfigurationRoot, engine_config);
+        directories.insert(RootDir::UserLogRoot, logs);
+        directories.insert(RootDir::UserSaveRoot, saves);
+
+        Ok(GameDirectories(directories))
     }
 
-    pub fn user_data_path(&self) -> &PathBuf {
-        &self.user_data_path
+    pub fn path(&self, root_dir: &RootDir) -> FileSystemResult<&PathBuf> {
+        match self.0.get(root_dir) {
+            Some(pathbuf_ref) => {
+                Ok(pathbuf_ref)
+            },
+            None => {
+                Err(FileSystemError::GameDirectoryError(format!("The associated path for {:?} could not be found !", root_dir)))
+            }
+        }
     }
-
-    pub fn user_config_path(&self) -> &PathBuf {
-        &self.user_data_path
-    }
-
-    pub fn logs_path(&self) -> &PathBuf {&self.logs_path}
-
-    pub fn engine_configuration_path(&self) -> &PathBuf {&self.engine_configuration_path}
-
-    pub fn saves_path(&self) -> &PathBuf {&self.saves_path}
-
-    pub fn current_path(&self) -> &PathBuf {&self.current_path}
-
-
 }
