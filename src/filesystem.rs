@@ -40,7 +40,7 @@ A filesystem must provide the following functionalities :
 
 //TODO: Still not sure about the way to create the bufreader and writers, and about the async stuff.
 
-fn get_absolute_path(root_dir: &PathBuf, path: &str) -> PathBuf {
+pub fn get_absolute_path(root_dir: &PathBuf, path: &str) -> PathBuf {
     let mut root = root_dir.clone();
     //An empty &str can be used to delete a root directory (for tests). A bit hacky but....
     if !path.is_empty() {
