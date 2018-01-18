@@ -40,7 +40,7 @@ A filesystem must provide the following functionalities :
 
 //TODO: Still not sure about the way to create the bufreader and writers, and about the async stuff.
 
-pub fn get_absolute_path(root_dir: &PathBuf, path: &str) -> PathBuf {
+fn get_absolute_path(root_dir: &PathBuf, path: &str) -> PathBuf {
     let mut root = root_dir.clone();
     //An empty &str can be used to delete a root directory (for tests). A bit hacky but....
     if !path.is_empty() {
@@ -222,6 +222,11 @@ impl FileSystem {
         Ok(FileSystem {
             game_directories: game_dirs,
         })
+    }
+
+    pub fn get_absolute_path(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<PathBuf> {
+        let root_dir = self.game_directories.path(root_dir)?;
+        Ok(get_absolute_path(root_dir, path))
     }
 
     //Open file at path to read
