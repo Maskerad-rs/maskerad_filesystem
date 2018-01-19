@@ -18,6 +18,7 @@ pub enum FileSystemError {
     CreationError(String),
     IOError(String, IOError),
     EnvironmentError(String, VarError),
+    ExtensionError(String),
 }
 
 impl fmt::Display for FileSystemError {
@@ -27,6 +28,7 @@ impl fmt::Display for FileSystemError {
             &FileSystemError::CreationError(ref description) => write!(f, "Creation error: {}", description),
             &FileSystemError::EnvironmentError(ref description, _) => write!(f, "Environment variable error: {}", description),
             &FileSystemError::IOError(ref description, _) => write!(f, "I/O error: {}", description),
+            &FileSystemError::ExtensionError(ref description) => write!(f, "file extension error: {}", description),
         }
     }
 }
@@ -38,6 +40,7 @@ impl Error for FileSystemError {
             &FileSystemError::CreationError(_) => "CreationError",
             &FileSystemError::EnvironmentError(_, _) => "EnvironmentError",
             &FileSystemError::IOError(_, _) => "IOError",
+            &FileSystemError::ExtensionError(_) => "ExtensionError",
         }
     }
 
@@ -47,6 +50,7 @@ impl Error for FileSystemError {
             &FileSystemError::CreationError(_) => None,
             &FileSystemError::IOError(_, ref cause) => Some(cause),
             &FileSystemError::EnvironmentError(_, ref cause) => Some(cause),
+            &FileSystemError::ExtensionError(_) => None,
         }
     }
 }

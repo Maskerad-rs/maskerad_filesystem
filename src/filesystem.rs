@@ -16,6 +16,7 @@ use game_directories::{GameDirectories, RootDir};
 use filesystem_error::{FileSystemResult, FileSystemError};
 use rayon::{ThreadPool, Configuration};
 use open_options::OpenOptions;
+use file_extensions::FileExtension;
 //use files::VFile;
 //use metadata::{VMetadata, Metadata};
 use remove_dir_all;
@@ -47,6 +48,33 @@ fn get_absolute_path(root_dir: &PathBuf, path: &str) -> PathBuf {
         root.push(Path::new(path));
     }
     root
+}
+
+fn get_extension(path: &str) -> FileSystemResult<FileExtension> {
+    match Path::new(path).extension() {
+        Some(extension) => {
+            match extension.to_str().expect("Not valid unicode") {
+                "gltf" => {
+                    Ok(FileExtension::GLTF)
+                },
+                "flac" => {
+                    Ok(FileExtension::FLAC)
+                },
+                "ogg" => {
+                    Ok(FileExtension::OGG)
+                },
+                "tga" => {
+                    Ok(FileExtension::TGA)
+                },
+                _ => {
+                    Err(FileSystemError::ExtensionError(format!("The file extension {:?} at path {} isn't a supported file extension (tga, flac, ogg, gltf).", extension, path)))
+                }
+            }
+        },
+        None => {
+            Err(FileSystemError::ExtensionError(format!("The path {} doesn't have a valid extension ! No file name ? No embedded '.' ? Begins with a '.' but doesn't have other '.' within ?", path)))
+        }
+    }
 }
 
 //Open file at path with options
@@ -229,6 +257,10 @@ impl FileSystem {
         Ok(get_absolute_path(root_dir, path))
     }
 
+    pub fn get_file_extension(&self, path: &str) -> FileSystemResult<FileExtension> {
+        get_extension(path)
+    }
+
     //Open file at path to read
     pub fn open(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<BufReader<File>> {
         open_as_bufreader(self.game_directories.path(root_dir)?, path)
@@ -385,15 +417,6 @@ mod filesystem_test {
     fn filesystem_read_dir() {
         let filesystem = FileSystem::new(GameInfos::new("test_filesystem_blacksmith", "Malkaviel")).expect("Couldn't create FS");
         let mut entries = filesystem.read_dir(&RootDir::WorkingDirectory, "src").unwrap();
-        assert!(entries.next().is_some()); //files.rs
-        assert!(entries.next().is_some()); //filesystem.rs
-        assert!(entries.next().is_some()); //filesystem_error.rs
-        assert!(entries.next().is_some()); //game_directories.rs
-        assert!(entries.next().is_some()); //game_infos.rs
-        assert!(entries.next().is_some()); //lib.rs
-        assert!(entries.next().is_some()); //metadata.rs
-        assert!(entries.next().is_some()); //open_options.rs
-
-        assert!(entries.next().is_none());
+        assert!(entries.next().is_some());
     }
 }

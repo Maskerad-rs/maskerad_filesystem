@@ -5,14 +5,9 @@
 // http://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-extern crate remove_dir_all;
-extern crate rayon;
-
-pub mod filesystem_error;
-pub mod game_directories;
-pub mod game_infos;
-pub mod filesystem;
-pub mod metadata;
-pub mod files;
-pub mod open_options;
-mod file_extensions;
+pub enum FileExtension {
+    TGA,
+    OGG,
+    FLAC,
+    GLTF,
+}
