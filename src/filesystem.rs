@@ -20,6 +20,7 @@ use file_extensions::FileExtension;
 //use files::VFile;
 //use metadata::{VMetadata, Metadata};
 use remove_dir_all;
+use std::ffi::OsStr;
 
 
 //Open to read file
@@ -50,30 +51,10 @@ fn get_absolute_path(root_dir: &PathBuf, path: &str) -> PathBuf {
     root
 }
 
-fn get_extension(path: &str) -> FileSystemResult<FileExtension> {
+fn get_extension(path: &str) -> FileSystemResult<&OsStr> {
     match Path::new(path).extension() {
-        Some(extension) => {
-            match extension.to_str().expect("Not valid unicode") {
-                "gltf" => {
-                    Ok(FileExtension::GLTF)
-                },
-                "flac" => {
-                    Ok(FileExtension::FLAC)
-                },
-                "ogg" => {
-                    Ok(FileExtension::OGG)
-                },
-                "tga" => {
-                    Ok(FileExtension::TGA)
-                },
-                _ => {
-                    Err(FileSystemError::ExtensionError(format!("The file extension {:?} at path {} isn't a supported file extension (tga, flac, ogg, gltf).", extension, path)))
-                }
-            }
-        },
-        None => {
-            Err(FileSystemError::ExtensionError(format!("The path {} doesn't have a valid extension ! No file name ? No embedded '.' ? Begins with a '.' but doesn't have other '.' within ?", path)))
-        }
+        Some(extension) => Ok(extension),
+        None => Err(FileSystemError::ExtensionError(format!("The file extension at path {} is not valid ! no file name ? no '.' in path ? file name starts with '.' but no other '.' within the path ?", path)))
     }
 }
 
@@ -257,7 +238,7 @@ impl FileSystem {
         Ok(get_absolute_path(root_dir, path))
     }
 
-    pub fn get_file_extension(&self, path: &str) -> FileSystemResult<FileExtension> {
+    pub fn get_file_extension(&self, path: &str) -> FileSystemResult<&OsStr> {
         get_extension(path)
     }
 
