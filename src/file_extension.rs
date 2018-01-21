@@ -10,4 +10,5 @@ pub enum FileExtension {
     FLAC,
     OGG,
     TGA,
+    RADLEVEL,
 }
