@@ -40,18 +40,16 @@ A filesystem must provide the following functionalities :
 */
 
 //TODO: Still not sure about the way to create the bufreader and writers, and about the async stuff.
+//TODO: We assume that the &Path given to the functions is an absolute Path.
 
-fn get_absolute_path(root_dir: &PathBuf, path: &str) -> PathBuf {
-    let mut root = root_dir.clone();
-    //An empty &str can be used to delete a root directory (for tests). A bit hacky but....
-    if !path.is_empty() {
-        root.push(Path::new(path));
-    }
-    root
+fn get_absolute_path(path: &Path) -> FileSystemResult<PathBuf> {
+    fs::canonicalize(path).map_err(|io_error| {
+        FileSystemError::from(io_error)
+    })
 }
 
-fn get_extension(path: &str) -> FileSystemResult<FileExtension> {
-    match Path::new(path).extension() {
+fn get_extension(path: &Path) -> FileSystemResult<FileExtension> {
+    match path.extension() {
         Some(extension) => {
             match extension.to_str().expect("Not valid unicode") {
                 "gltf" => {
@@ -70,71 +68,71 @@ fn get_extension(path: &str) -> FileSystemResult<FileExtension> {
                     Ok(FileExtension::TOML)
                 }
                 _ => {
-                    Err(FileSystemError::ExtensionError(format!("The file extension {:?} at path {} isn't a supported file extension (tga, flac, ogg, gltf, toml).", extension, path)))
+                    Err(FileSystemError::ExtensionError(format!("The file extension {:?} at path {:?} isn't a supported file extension (tga, flac, ogg, gltf, toml).", extension, path)))
                 }
             }
         },
         None => {
-            Err(FileSystemError::ExtensionError(format!("The path {} doesn't have a valid extension ! No file name ? No embedded '.' ? Begins with a '.' but doesn't have other '.' within ?", path)))
+            Err(FileSystemError::ExtensionError(format!("The path {:?} doesn't have a valid extension ! No file name ? No embedded '.' ? Begins with a '.' but doesn't have other '.' within ?", path)))
         }
     }
 }
 
 //Open file at path with options
-fn open_with_options(root_dir: &PathBuf, path: &str, open_options: &OpenOptions) -> FileSystemResult<File> {
-    let absolute_path = get_absolute_path(root_dir, path);
+fn open_with_options(path: &Path, open_options: &OpenOptions) -> FileSystemResult<File> {
 
     open_options
         .to_fs_openoptions()
-        .open(absolute_path.as_path())
+        .open(path)
         .map_err(|io_error| {
             FileSystemError::from(io_error)
         })
 }
 
-fn open_as_bufreader(root_dir: &PathBuf, path: &str) -> FileSystemResult<BufReader<File>> {
-    let buf = open_with_options(root_dir, path, OpenOptions::new().set_read(true))?;
+fn open_as_bufreader(path: &Path) -> FileSystemResult<BufReader<File>> {
+    let buf = open_with_options(path, OpenOptions::new().set_read(true))?;
     Ok(BufReader::new(buf))
 }
 
 //Open file at path for writing, truncates if file already exist
-fn create_as_bufwriter(root_dir: &PathBuf, path: &str) -> FileSystemResult<BufWriter<File>> {
-    let buf = open_with_options( root_dir, path, OpenOptions::new().set_create(true).set_write(true).set_truncate(true))?;
+fn create_as_bufwriter(path: &Path) -> FileSystemResult<BufWriter<File>> {
+    let buf = open_with_options(path, OpenOptions::new().set_create(true).set_write(true).set_truncate(true))?;
     Ok(BufWriter::new(buf))
 }
 
 //Open the file at path for appending, creating it if necessary
-fn append_as_bufwriter(root_dir: &PathBuf, path: &str) -> FileSystemResult<BufWriter<File>> {
-    let buf = open_with_options(root_dir, path, OpenOptions::new().set_create(true).set_append(true).set_write(true))?;
+fn append_as_bufwriter(path: &Path) -> FileSystemResult<BufWriter<File>> {
+    let buf = open_with_options(path, OpenOptions::new().set_create(true).set_append(true).set_write(true))?;
     Ok(BufWriter::new(buf))
 }
 
+
+
+
+
 //create directory at path
-fn mkdir(root_dir: &PathBuf, path: &str) -> FileSystemResult<()> {
-    let absolute_path = get_absolute_path(root_dir, path);
-    fs::DirBuilder::new().recursive(true).create(absolute_path.as_path()).map_err(|io_error| {
+fn mkdir(path: &Path) -> FileSystemResult<()> {
+    fs::DirBuilder::new().recursive(true).create(path).map_err(|io_error| {
         FileSystemError::from(io_error)
     })
 }
 //remove a file
-fn rm(root_dir: &PathBuf, path: &str) -> FileSystemResult<()> {
-    let absolute_path = get_absolute_path(root_dir, path);
+fn rm(path: &Path) -> FileSystemResult<()> {
 
-    if absolute_path.is_dir() {
-        fs::remove_dir(absolute_path).map_err(|io_error| {
+    if path.is_dir() {
+        fs::remove_dir(path).map_err(|io_error| {
             FileSystemError::from(io_error)
         })
     } else {
-        fs::remove_file(absolute_path).map_err(|io_error| {
+        fs::remove_file(path).map_err(|io_error| {
             FileSystemError::from(io_error)
         })
     }
 }
 //remove file or directory and all its contents
-fn rmrf(root_dir: &PathBuf, path: &str) -> FileSystemResult<()> {
-    if exists(root_dir, path) {
-        let absolute_path = get_absolute_path(root_dir, path);
-        remove_dir_all::remove_dir_all(absolute_path.as_path()).map_err(|io_error| {
+fn rmrf(path: &Path) -> FileSystemResult<()> {
+    if exists(path) {
+        remove_dir_all::remove_dir_all(path).map_err(|io_error| {
             FileSystemError::from(io_error)
         })
     } else {
@@ -142,26 +140,29 @@ fn rmrf(root_dir: &PathBuf, path: &str) -> FileSystemResult<()> {
     }
 }
 //Check if file exists
-fn exists(root_dir: &PathBuf, path: &str) -> bool {
-    get_absolute_path(root_dir, path).exists()
+fn exists(path: &Path) -> bool {
+    path.exists()
 }
 
 //Get file's metadata
-fn metadata(root_dir: &PathBuf, path: &str) -> FileSystemResult<fs::Metadata> {
-    let absolute_path = get_absolute_path(root_dir, path);
-    absolute_path.metadata().map_err(|error| {
+fn metadata(path: &Path) -> FileSystemResult<fs::Metadata> {
+    path.metadata().map_err(|error| {
         FileSystemError::from(error)
     })
 }
 
 //Retrieve all file entries in the given directory (recursive).
-fn read_dir(root_dir: &PathBuf, path: &str) -> FileSystemResult<fs::ReadDir> {
-    let absolute_path = get_absolute_path(root_dir, path);
+fn read_dir(path: &Path) -> FileSystemResult<fs::ReadDir> {
 
-    fs::read_dir(absolute_path.as_path()).map_err(|io_error| {
+    fs::read_dir(path).map_err(|io_error| {
         FileSystemError::from(io_error)
     })
 }
+
+
+
+
+
 
 fn read<T: Read>(bufreader: &mut BufReader<T>, buf: &mut [u8]) -> FileSystemResult<usize> {
     bufreader.read(buf).map_err(|io_error| {
@@ -255,59 +256,74 @@ impl FileSystem {
         })
     }
 
-    pub fn get_absolute_path(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<PathBuf> {
+    pub fn get_root_of(&self, root_dir: &RootDir) -> FileSystemResult<PathBuf> {
         let root_dir = self.game_directories.path(root_dir)?;
-        Ok(get_absolute_path(root_dir, path))
+        Ok(root_dir.clone())
     }
 
-    pub fn get_file_extension(&self, path: &str) -> FileSystemResult<FileExtension> {
+    pub fn construct_path_from_root(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<PathBuf> {
+        let mut root_dir = self.get_root_of(root_dir)?;
+        root_dir.push(path);
+        Ok(root_dir)
+    }
+
+    pub fn get_absolute_path(&self, path: &Path) -> FileSystemResult<PathBuf> {
+        get_absolute_path(path)
+    }
+
+    pub fn get_file_extension(&self, path: &Path) -> FileSystemResult<FileExtension> {
         get_extension(path)
     }
 
     //Open file at path to read
-    pub fn open(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<BufReader<File>> {
-        open_as_bufreader(self.game_directories.path(root_dir)?, path)
+    pub fn open(&self, path: &Path) -> FileSystemResult<BufReader<File>> {
+        open_as_bufreader(path)
     }
 
     //Open file at path for writing, truncates if file already exist
-    pub fn create(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<BufWriter<File>> {
-        create_as_bufwriter(self.game_directories.path(root_dir)?, path)
+    pub fn create(&self, path: &Path) -> FileSystemResult<BufWriter<File>> {
+        create_as_bufwriter(path)
     }
 
     //Open the file at path for appending, creating it if necessary
-    pub fn append(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<BufWriter<File>> {
-        append_as_bufwriter(self.game_directories.path(root_dir)?, path)
+    pub fn append(&self, path: &Path) -> FileSystemResult<BufWriter<File>> {
+        append_as_bufwriter(path)
     }
 
     //create directory at path
-    pub fn mkdir(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<()> {
-        mkdir(self.game_directories.path(root_dir)?, path)
+    pub fn mkdir(&self, path: &Path) -> FileSystemResult<()> {
+        mkdir(path)
     }
 
     //remove a file
-    pub fn rm(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<()> {
-        rm(self.game_directories.path(root_dir)?, path)
+    pub fn rm(&self, path: &Path) -> FileSystemResult<()> {
+        rm(path)
     }
 
     //remove file or directory and all its contents
-    pub fn rmrf(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<()> {
-        rmrf(self.game_directories.path(root_dir)?, path)
+    pub fn rmrf(&self, path: &Path) -> FileSystemResult<()> {
+        rmrf(path)
     }
 
     //Check if file exists
-    pub fn exists(&self, root_dir: &RootDir, path: &str) -> bool {
-        exists(self.game_directories.path(root_dir).unwrap(), path)
+    pub fn exists(&self, path: &PathBuf) -> bool {
+        exists(path)
     }
 
     //Get file's metadata
-    pub fn metadata(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<fs::Metadata> {
-        metadata(self.game_directories.path(root_dir)?, path)
+    pub fn metadata(&self, path: &Path) -> FileSystemResult<fs::Metadata> {
+        metadata(path)
     }
 
     //Retrieve all file entries in the given directory (recursive).
-    pub fn read_dir(&self, root_dir: &RootDir, path: &str) -> FileSystemResult<fs::ReadDir> {
-        read_dir(self.game_directories.path(root_dir)?, path)
+    pub fn read_dir(&self, path: &Path) -> FileSystemResult<fs::ReadDir> {
+        read_dir(path)
     }
+
+
+
+
+
 
     pub fn read<T: Read>(&self, bufreader: &mut BufReader<T>, buf: &mut [u8]) -> FileSystemResult<usize> {
         read(bufreader, buf)
@@ -370,32 +386,41 @@ mod filesystem_test {
     fn filesystem_io_operations() {
         let filesystem = FileSystem::new(GameInfos::new("test_filesystem_maskerad", "Malkaviel")).expect("Couldn't create FS");
 
-        filesystem.mkdir(&RootDir::WorkingDirectory, "dir_test").unwrap();
-        assert!(filesystem.exists(&RootDir::WorkingDirectory, "dir_test"));
+        let current_dir_dir_test = filesystem.construct_path_from_root(&RootDir::WorkingDirectory, "dir_test").expect("Could not create current_dir_dir_test PathBuf");
+        /*println!("{:?}", current_dir_dir_test);
+        println!("{:?}", current_dir_dir_test.as_path());
+        panic!();*/
+        filesystem.mkdir(current_dir_dir_test.as_path()).expect("Could not create dir with current_dir_dir_test as path");
+        assert!(filesystem.exists(&current_dir_dir_test));
 
         //user logs
-        filesystem.mkdir(&RootDir::UserLogRoot, "log_dir_test").unwrap();
-        assert!(filesystem.exists(&RootDir::UserLogRoot, "log_dir_test"));
-        let mut log_dir_bufwriter = filesystem.create(&RootDir::UserLogRoot, "log_dir_test/file_test.txt").expect("Could not create log_dir_test/file_test.txt");
+        let user_log_dir_test = filesystem.construct_path_from_root(&RootDir::UserLogRoot, "log_dir_test").expect("Could not create user_log_dir_test");
+        filesystem.mkdir(user_log_dir_test.as_path()).expect("Could not create dir with user_log_dir_test as path");
+        assert!(filesystem.exists(&user_log_dir_test));
+
+        let file_test = filesystem.construct_path_from_root(&RootDir::UserLogRoot, "log_dir_test/file_test.txt").expect("Could not create file_test.txt");
+        let mut log_dir_bufwriter = filesystem.create(file_test.as_path()).expect("Could not create log_dir_test/file_test.txt");
         filesystem.write_all(&mut log_dir_bufwriter, b"text_test\n").expect("Couldn't add 'text test'");
 
 
 
-        filesystem.mkdir(&RootDir::UserLogRoot, "async_dir").unwrap();
-        assert!(filesystem.exists(&RootDir::UserLogRoot, "async_dir"));
+        let async_dir = filesystem.construct_path_from_root(&RootDir::UserLogRoot, "async_dir").expect("Could not create async_dir");
+        filesystem.mkdir(async_dir.as_path()).expect("Could not create dir with async_dir as path");
+        assert!(filesystem.exists(&async_dir));
         //test async functionalities.
         let thread_pool = Configuration::new().build().expect("Could not create the thread pool.");
-
+        let async_log_dir_test = filesystem.construct_path_from_root(&RootDir::UserLogRoot, "async_dir/async_log_dir_test.txt").expect("Could not create async_log_dir_test");
         {
-            let mut log_bufwriter = filesystem.create(&RootDir::UserLogRoot, "async_dir/async_log_dir_test.txt").expect("Could not create the bufwriter");
+
+            let mut log_bufwriter = filesystem.create(async_log_dir_test.as_path()).expect("Could not create the bufwriter");
             filesystem.async_write_all(&mut log_bufwriter, b"test_async_text_1\n", &thread_pool).expect("Could not write to file async_log_dir_test and write test_async_test_1 asynchronously");
             filesystem.async_write_all(&mut log_bufwriter, b"test_async_text_2\n", &thread_pool).expect("Could not write to file async_log_dir_test and write test_async_test_2 asynchronously");
             filesystem.async_write_all(&mut log_bufwriter, b"test_async_text_3\n", &thread_pool).expect("Could not write to file async_log_dir_test and write test_async_test_3 asynchronously");
         } //bufwriter dropped here, all the write calls will be executed.
 
-        let mut bufreader_async = filesystem.open(&RootDir::UserLogRoot, "async_dir/async_log_dir_test.txt").expect("Could not create bufreader");
+        let mut bufreader_async = filesystem.open(async_log_dir_test.as_path()).expect("Could not create bufreader");
         let mut content = String::new();
-        filesystem.async_read_to_string(&mut bufreader_async, &mut content, &thread_pool).unwrap();
+        filesystem.async_read_to_string(&mut bufreader_async, &mut content, &thread_pool).expect("Could not read bufreader_async to string");
         let mut lines = content.lines();
         assert_eq!(lines.next(), Some("test_async_text_1"));
         assert_eq!(lines.next(), Some("test_async_text_2"));
@@ -403,23 +428,24 @@ mod filesystem_test {
         assert_eq!(lines.next(), None);
 
         //Metadata
-        let file_metadata = filesystem.metadata(&RootDir::UserLogRoot, "async_dir/async_log_dir_test.txt").expect("Couldn't get metadata");
+        let file_metadata = filesystem.metadata(async_log_dir_test.as_path()).expect("Couldn't get metadata");
         assert!(file_metadata.is_file());
         assert!(!file_metadata.is_dir());
         assert!(file_metadata.len() > 0);
 
         //remove
-        filesystem.rm(&RootDir::UserLogRoot, "async_dir/async_log_dir_test.txt").expect("Couldn't delete the file : async_dir/async_log_dir_test.txt");
-        assert!(!filesystem.exists(&RootDir::UserLogRoot, "async_dir/async_log_dir_test.txt"));
-        filesystem.rmrf(&RootDir::WorkingDirectory, "dir_test").expect("Couldn't delete dir");
-        assert!(!filesystem.exists(&RootDir::WorkingDirectory, "dir_test"));
+        filesystem.rm(async_log_dir_test.as_path()).expect("Couldn't delete the file : async_dir/async_log_dir_test.txt");
+        assert!(!filesystem.exists(&async_log_dir_test));
+        filesystem.rmrf(current_dir_dir_test.as_path()).expect("Couldn't delete dir");
+        assert!(!filesystem.exists(&current_dir_dir_test));
     }
 
 
     #[test]
     fn filesystem_read_dir() {
         let filesystem = FileSystem::new(GameInfos::new("test_filesystem_blacksmith", "Malkaviel")).expect("Couldn't create FS");
-        let mut entries = filesystem.read_dir(&RootDir::WorkingDirectory, "src").unwrap();
+        let src_dir = filesystem.construct_path_from_root(&RootDir::WorkingDirectory, "src").unwrap();
+        let mut entries = filesystem.read_dir(src_dir.as_path()).unwrap();
         assert!(entries.next().is_some());
     }
 }
