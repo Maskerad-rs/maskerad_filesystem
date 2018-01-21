@@ -66,8 +66,11 @@ fn get_extension(path: &str) -> FileSystemResult<FileExtension> {
                 "tga" => {
                     Ok(FileExtension::TGA)
                 },
+                "toml" => {
+                    Ok(FileExtension::TOML)
+                }
                 _ => {
-                    Err(FileSystemError::ExtensionError(format!("The file extension {:?} at path {} isn't a supported file extension (tga, flac, ogg, gltf).", extension, path)))
+                    Err(FileSystemError::ExtensionError(format!("The file extension {:?} at path {} isn't a supported file extension (tga, flac, ogg, gltf, toml).", extension, path)))
                 }
             }
         },
