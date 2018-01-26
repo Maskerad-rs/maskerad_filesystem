@@ -306,7 +306,7 @@ impl FileSystem {
     }
 
     //Check if file exists
-    pub fn exists(&self, path: &PathBuf) -> bool {
+    pub fn exists(&self, path: &Path) -> bool {
         exists(path)
     }
 
