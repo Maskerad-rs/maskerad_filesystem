@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::env;
 use game_infos::GameInfos;
-use filesystem_error::{FileSystemResult, FileSystemError};
+use filesystem_error::{FileSystemError, FileSystemResult};
 
 //Enum used to specify the 'root' directory from where to write/delete/open dir/files
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -28,25 +28,42 @@ pub struct GameDirectories(HashMap<RootDir, PathBuf>);
 
 impl GameDirectories {
     pub fn new(game_infos: GameInfos) -> FileSystemResult<Self> {
-
         let user_config = if cfg!(target_os = "windows") {
             let appdata = env::var("APPDATA")?;
-            PathBuf::from(format!("{}\'{}\'{}", appdata.as_str(), game_infos.author().as_str(), game_infos.game_name().as_str()))
+            PathBuf::from(format!(
+                "{}\'{}\'{}",
+                appdata.as_str(),
+                game_infos.author().as_str(),
+                game_infos.game_name().as_str()
+            ))
         } else if cfg!(target_os = "macos") {
             unimplemented!();
         } else {
             let home = env::var("HOME")?;
-            PathBuf::from(format!("{}/.config/{}", home.as_str(), game_infos.game_name().as_str()))
+            PathBuf::from(format!(
+                "{}/.config/{}",
+                home.as_str(),
+                game_infos.game_name().as_str()
+            ))
         };
 
         let user_data = if cfg!(target_os = "windows") {
             let appdata = env::var("APPDATA")?;
-            PathBuf::from(format!("{}\'{}\'{}", appdata.as_str(), game_infos.author().as_str(), game_infos.game_name().as_str()))
+            PathBuf::from(format!(
+                "{}\'{}\'{}",
+                appdata.as_str(),
+                game_infos.author().as_str(),
+                game_infos.game_name().as_str()
+            ))
         } else if cfg!(target_os = "macos") {
             unimplemented!();
         } else {
             let home = env::var("HOME")?;
-            PathBuf::from(format!("{}/.local/share/{}", home.as_str(), game_infos.game_name().as_str()))
+            PathBuf::from(format!(
+                "{}/.local/share/{}",
+                home.as_str(),
+                game_infos.game_name().as_str()
+            ))
         };
 
         let mut logs = user_config.clone();
@@ -70,12 +87,11 @@ impl GameDirectories {
 
     pub fn path(&self, root_dir: &RootDir) -> FileSystemResult<&PathBuf> {
         match self.0.get(root_dir) {
-            Some(pathbuf_ref) => {
-                Ok(pathbuf_ref)
-            },
-            None => {
-                Err(FileSystemError::GameDirectoryError(format!("The associated path for {:?} could not be found !", root_dir)))
-            }
+            Some(pathbuf_ref) => Ok(pathbuf_ref),
+            None => Err(FileSystemError::GameDirectoryError(format!(
+                "The associated path for {:?} could not be found !",
+                root_dir
+            ))),
         }
     }
 }

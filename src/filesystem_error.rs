@@ -10,7 +10,6 @@ use std::fmt;
 use std::io::Error as IOError;
 use std::env::VarError;
 
-
 //TODO: probably an async error type.
 #[derive(Debug)]
 pub enum FileSystemError {
@@ -24,11 +23,21 @@ pub enum FileSystemError {
 impl fmt::Display for FileSystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            &FileSystemError::GameDirectoryError(ref description) => write!(f, "Game directory error: {}", description),
-            &FileSystemError::CreationError(ref description) => write!(f, "Creation error: {}", description),
-            &FileSystemError::EnvironmentError(ref description, _) => write!(f, "Environment variable error: {}", description),
-            &FileSystemError::IOError(ref description, _) => write!(f, "I/O error: {}", description),
-            &FileSystemError::ExtensionError(ref description) => write!(f, "file extension error: {}", description),
+            &FileSystemError::GameDirectoryError(ref description) => {
+                write!(f, "Game directory error: {}", description)
+            }
+            &FileSystemError::CreationError(ref description) => {
+                write!(f, "Creation error: {}", description)
+            }
+            &FileSystemError::EnvironmentError(ref description, _) => {
+                write!(f, "Environment variable error: {}", description)
+            }
+            &FileSystemError::IOError(ref description, _) => {
+                write!(f, "I/O error: {}", description)
+            }
+            &FileSystemError::ExtensionError(ref description) => {
+                write!(f, "file extension error: {}", description)
+            }
         }
     }
 }
@@ -57,7 +66,6 @@ impl Error for FileSystemError {
 
 pub type FileSystemResult<T> = Result<T, FileSystemError>;
 
-
 impl From<IOError> for FileSystemError {
     fn from(error: IOError) -> Self {
         FileSystemError::IOError(format!("Error while doing I/O operations"), error)
@@ -66,6 +74,9 @@ impl From<IOError> for FileSystemError {
 
 impl From<VarError> for FileSystemError {
     fn from(error: VarError) -> Self {
-        FileSystemError::EnvironmentError(format!("Error while dealing with environment variable"), error)
+        FileSystemError::EnvironmentError(
+            format!("Error while dealing with environment variable"),
+            error,
+        )
     }
 }
