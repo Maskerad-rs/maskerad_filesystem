@@ -16,7 +16,6 @@ use game_directories::{GameDirectories, RootDir};
 use filesystem_error::{FileSystemResult, FileSystemError};
 use rayon::{ThreadPool, Configuration};
 use open_options::OpenOptions;
-use file_extension::FileExtension;
 //use files::VFile;
 //use metadata::{VMetadata, Metadata};
 use remove_dir_all;
@@ -33,8 +32,8 @@ use remove_dir_all;
 A filesystem must provide the following functionalities :
 - Manipulating file names and paths.
 - open close read write append create files and directory.
-- does a file or directory exists ?.
-- get metadata about files.
+- does a file or directory exists ?. -> Path stuff.
+- get metadata about files. -> File stuff.
 - scan content of directory.
 - asynchronous I/O (streaming music or textures...).
 */
@@ -46,36 +45,6 @@ fn get_absolute_path(path: &Path) -> FileSystemResult<PathBuf> {
     fs::canonicalize(path).map_err(|io_error| {
         FileSystemError::from(io_error)
     })
-}
-
-fn get_extension(path: &Path) -> FileSystemResult<FileExtension> {
-    match path.extension() {
-        Some(extension) => {
-            match extension.to_str().expect("Not valid unicode") {
-                "gltf" => {
-                    Ok(FileExtension::GLTF)
-                },
-                "flac" => {
-                    Ok(FileExtension::FLAC)
-                },
-                "ogg" => {
-                    Ok(FileExtension::OGG)
-                },
-                "tga" => {
-                    Ok(FileExtension::TGA)
-                },
-                "toml" => {
-                    Ok(FileExtension::TOML)
-                }
-                _ => {
-                    Err(FileSystemError::ExtensionError(format!("The file extension {:?} at path {:?} isn't a supported file extension (tga, flac, ogg, gltf, toml).", extension, path)))
-                }
-            }
-        },
-        None => {
-            Err(FileSystemError::ExtensionError(format!("The path {:?} doesn't have a valid extension ! No file name ? No embedded '.' ? Begins with a '.' but doesn't have other '.' within ?", path)))
-        }
-    }
 }
 
 //Open file at path with options
@@ -131,24 +100,13 @@ fn rm(path: &Path) -> FileSystemResult<()> {
 }
 //remove file or directory and all its contents
 fn rmrf(path: &Path) -> FileSystemResult<()> {
-    if exists(path) {
+    if path.exists() {
         remove_dir_all::remove_dir_all(path).map_err(|io_error| {
             FileSystemError::from(io_error)
         })
     } else {
         Ok(())
     }
-}
-//Check if file exists
-fn exists(path: &Path) -> bool {
-    path.exists()
-}
-
-//Get file's metadata
-fn metadata(path: &Path) -> FileSystemResult<fs::Metadata> {
-    path.metadata().map_err(|error| {
-        FileSystemError::from(error)
-    })
 }
 
 //Retrieve all file entries in the given directory (recursive).
@@ -271,10 +229,6 @@ impl FileSystem {
         get_absolute_path(path)
     }
 
-    pub fn get_file_extension(&self, path: &Path) -> FileSystemResult<FileExtension> {
-        get_extension(path)
-    }
-
     //Open file at path to read
     pub fn open(&self, path: &Path) -> FileSystemResult<BufReader<File>> {
         open_as_bufreader(path)
@@ -303,16 +257,6 @@ impl FileSystem {
     //remove file or directory and all its contents
     pub fn rmrf(&self, path: &Path) -> FileSystemResult<()> {
         rmrf(path)
-    }
-
-    //Check if file exists
-    pub fn exists(&self, path: &Path) -> bool {
-        exists(path)
-    }
-
-    //Get file's metadata
-    pub fn metadata(&self, path: &Path) -> FileSystemResult<fs::Metadata> {
-        metadata(path)
     }
 
     //Retrieve all file entries in the given directory (recursive).

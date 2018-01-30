@@ -15,4 +15,3 @@ pub mod filesystem;
 pub mod metadata;
 pub mod files;
 pub mod open_options;
-pub mod file_extension;
