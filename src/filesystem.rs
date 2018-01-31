@@ -76,6 +76,7 @@ fn write_all<T: Write>(bufwriter: &mut BufWriter<T>, buf: &[u8]) -> FileSystemRe
         .map_err(|io_error| FileSystemError::from(io_error))
 }
 
+
 pub struct FileSystem {
     game_directories: GameDirectories,
 }
@@ -89,9 +90,9 @@ impl FileSystem {
         })
     }
 
-    pub fn get_root_of(&self, root_dir: &RootDir) -> FileSystemResult<PathBuf> {
+    fn get_root_of(&self, root_dir: &RootDir) -> FileSystemResult<&Path> {
         let root_dir = self.game_directories.path(root_dir)?;
-        Ok(root_dir.clone())
+        Ok(root_dir)
     }
 
     pub fn construct_path_from_root(
@@ -99,7 +100,7 @@ impl FileSystem {
         root_dir: &RootDir,
         path: &str,
     ) -> FileSystemResult<PathBuf> {
-        let mut root_dir = self.get_root_of(root_dir)?;
+        let mut root_dir = self.get_root_of(root_dir)?.to_path_buf();
         root_dir.push(path);
         Ok(root_dir)
     }

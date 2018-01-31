@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::env;
 use game_infos::GameInfos;
 use filesystem_error::{FileSystemError, FileSystemResult};
@@ -85,9 +85,9 @@ impl GameDirectories {
         Ok(GameDirectories(directories))
     }
 
-    pub fn path(&self, root_dir: &RootDir) -> FileSystemResult<&PathBuf> {
+    pub fn path(&self, root_dir: &RootDir) -> FileSystemResult<&Path> {
         match self.0.get(root_dir) {
-            Some(pathbuf_ref) => Ok(pathbuf_ref),
+            Some(pathbuf_ref) => Ok(pathbuf_ref.as_path()),
             None => Err(FileSystemError::GameDirectoryError(format!(
                 "The associated path for {:?} could not be found !",
                 root_dir
