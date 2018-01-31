@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 use std::env;
 use game_infos::GameInfos;
 use filesystem_error::{FileSystemError, FileSystemResult};
@@ -93,5 +93,15 @@ impl GameDirectories {
                 root_dir
             ))),
         }
+    }
+
+    pub fn construct_path_from_root(
+        &self,
+        root_dir: &RootDir,
+        path: &str,
+    ) -> FileSystemResult<PathBuf> {
+        let mut root_dir = self.path(root_dir)?.to_path_buf();
+        root_dir.push(path);
+        Ok(root_dir)
     }
 }
