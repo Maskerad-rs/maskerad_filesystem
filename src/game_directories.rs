@@ -23,6 +23,7 @@ pub enum RootDir {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct GameDirectories(HashMap<RootDir, PathBuf>);
 
 impl GameDirectories {

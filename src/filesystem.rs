@@ -194,9 +194,7 @@ pub fn async_write_all<T: Write + Send>(
 #[cfg(test)]
 mod filesystem_test {
     use super::*;
-    use std::io::BufReader;
-    use std::io::{Read, Write};
-    use std::env;
+    use std::io::Write;
     //use rayon::Configuration;
     //use rayon::ThreadPool;
     use game_directories::{GameDirectories, RootDir};
