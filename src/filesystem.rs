@@ -8,11 +8,9 @@
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter};
 
-use game_directories::{GameDirectories, RootDir};
 use filesystem_error::{FileSystemError, FileSystemResult};
-use rayon::ThreadPool;
 use open_options::OpenOptions;
 use remove_dir_all;
 
@@ -71,27 +69,27 @@ pub fn write_all<T: Write>(to: &mut BufWriter<T>, from: &[u8]) -> FileSystemResu
 */
 
 pub fn get_absolute_path<P: AsRef<Path>>(path: P) -> FileSystemResult<PathBuf> {
-    fs::canonicalize(path).map_err(|io_error| FileSystemError::from(io_error))
+    fs::canonicalize(path.as_ref()).map_err(|io_error| FileSystemError::from(io_error))
 }
 
 //Open file at path with options
 fn open_with_options<P: AsRef<Path>>(path: P, open_options: &OpenOptions) -> FileSystemResult<File> {
     open_options
         .to_fs_openoptions()
-        .open(path)
+        .open(path.as_ref())
         .map_err(|io_error| FileSystemError::from(io_error))
 }
 
 //Open file at path to read
 pub fn open<P: AsRef<Path>>(path: P) -> FileSystemResult<BufReader<File>> {
-    let buf = open_with_options(path, OpenOptions::new().set_read(true))?;
+    let buf = open_with_options(path.as_ref(), OpenOptions::new().set_read(true))?;
     Ok(BufReader::new(buf))
 }
 
 //Open file at path for writing, truncates if file already exist
 pub fn create<P: AsRef<Path>>(path: P) -> FileSystemResult<BufWriter<File>> {
     let buf = open_with_options(
-        path,
+        path.as_ref(),
         OpenOptions::new()
             .set_create(true)
             .set_write(true)
@@ -103,7 +101,7 @@ pub fn create<P: AsRef<Path>>(path: P) -> FileSystemResult<BufWriter<File>> {
 //Open the file at path for appending, creating it if necessary
 pub fn append<P: AsRef<Path>>(path: P) -> FileSystemResult<BufWriter<File>> {
     let buf = open_with_options(
-        path,
+        path.as_ref(),
         OpenOptions::new()
             .set_create(true)
             .set_append(true)
@@ -116,23 +114,23 @@ pub fn append<P: AsRef<Path>>(path: P) -> FileSystemResult<BufWriter<File>> {
 pub fn mkdir<P: AsRef<Path>>(path: P) -> FileSystemResult<()> {
     fs::DirBuilder::new()
         .recursive(true)
-        .create(path)
+        .create(path.as_ref())
         .map_err(|io_error| FileSystemError::from(io_error))
 }
 
 //remove a file
 pub fn rm<P: AsRef<Path>>(path: P) -> FileSystemResult<()> {
     if path.as_ref().is_dir() {
-        fs::remove_dir(path).map_err(|io_error| FileSystemError::from(io_error))
+        fs::remove_dir(path.as_ref()).map_err(|io_error| FileSystemError::from(io_error))
     } else {
-        fs::remove_file(path).map_err(|io_error| FileSystemError::from(io_error))
+        fs::remove_file(path.as_ref()).map_err(|io_error| FileSystemError::from(io_error))
     }
 }
 
 //remove file or directory and all its contents
 pub fn rmrf<P: AsRef<Path>>(path: P) -> FileSystemResult<()> {
     if path.as_ref().exists() {
-        remove_dir_all::remove_dir_all(path).map_err(|io_error| FileSystemError::from(io_error))
+        remove_dir_all::remove_dir_all(path.as_ref()).map_err(|io_error| FileSystemError::from(io_error))
     } else {
         Ok(())
     }
@@ -140,7 +138,7 @@ pub fn rmrf<P: AsRef<Path>>(path: P) -> FileSystemResult<()> {
 
 //Retrieve all file entries in the given directory (recursive).
 pub fn read_dir<P: AsRef<Path>>(path: P) -> FileSystemResult<fs::ReadDir> {
-    fs::read_dir(path).map_err(|io_error| FileSystemError::from(io_error))
+    fs::read_dir(path.as_ref()).map_err(|io_error| FileSystemError::from(io_error))
 }
 
 /*
@@ -197,9 +195,11 @@ pub fn async_write_all<T: Write + Send>(
 mod filesystem_test {
     use super::*;
     use std::io::BufReader;
-    use std::io::Read;
+    use std::io::{Read, Write};
     use std::env;
     use rayon::Configuration;
+    use rayon::ThreadPool;
+    use game_directories::{GameDirectories, RootDir};
 
     #[test]
     fn filesystem_io_operations() {

@@ -7,7 +7,7 @@
 
 use std::collections::HashMap;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::env;
 use filesystem_error::{FileSystemError, FileSystemResult};
 
