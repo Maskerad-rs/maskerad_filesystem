@@ -10,7 +10,6 @@ use std::fmt;
 use std::io::Error as IOError;
 use std::env::VarError;
 
-//TODO: probably an async error type.
 #[derive(Debug)]
 pub enum FileSystemError {
     GameDirectoryError(String),
@@ -19,6 +18,9 @@ pub enum FileSystemError {
     EnvironmentError(String, VarError),
     ExtensionError(String),
 }
+
+unsafe impl Send for FileSystemError {}
+unsafe impl Sync for FileSystemError {}
 
 impl fmt::Display for FileSystemError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

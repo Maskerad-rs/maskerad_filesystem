@@ -9,11 +9,10 @@ use std::collections::HashMap;
 
 use std::path::{Path, PathBuf};
 use std::env;
-use game_infos::GameInfos;
 use filesystem_error::{FileSystemError, FileSystemResult};
 
 //Enum used to specify the 'root' directory from where to write/delete/open dir/files
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
 pub enum RootDir {
     WorkingDirectory,
     UserDataRoot,
@@ -27,14 +26,14 @@ pub enum RootDir {
 pub struct GameDirectories(HashMap<RootDir, PathBuf>);
 
 impl GameDirectories {
-    pub fn new(game_infos: GameInfos) -> FileSystemResult<Self> {
+    pub fn new(game_name: &str, game_author: &str) -> FileSystemResult<Self> {
         let user_config = if cfg!(target_os = "windows") {
             let appdata = env::var("APPDATA")?;
             PathBuf::from(format!(
                 "{}\'{}\'{}",
                 appdata.as_str(),
-                game_infos.author().as_str(),
-                game_infos.game_name().as_str()
+                game_author,
+                game_name
             ))
         } else if cfg!(target_os = "macos") {
             unimplemented!();
@@ -43,7 +42,7 @@ impl GameDirectories {
             PathBuf::from(format!(
                 "{}/.config/{}",
                 home.as_str(),
-                game_infos.game_name().as_str()
+                game_name
             ))
         };
 
@@ -52,8 +51,8 @@ impl GameDirectories {
             PathBuf::from(format!(
                 "{}\'{}\'{}",
                 appdata.as_str(),
-                game_infos.author().as_str(),
-                game_infos.game_name().as_str()
+                game_author,
+                game_name
             ))
         } else if cfg!(target_os = "macos") {
             unimplemented!();
@@ -62,7 +61,7 @@ impl GameDirectories {
             PathBuf::from(format!(
                 "{}/.local/share/{}",
                 home.as_str(),
-                game_infos.game_name().as_str()
+                game_name
             ))
         };
 
@@ -85,9 +84,9 @@ impl GameDirectories {
         Ok(GameDirectories(directories))
     }
 
-    pub fn path(&self, root_dir: &RootDir) -> FileSystemResult<&Path> {
-        match self.0.get(root_dir) {
-            Some(pathbuf_ref) => Ok(pathbuf_ref.as_path()),
+    pub fn path(&self, root_dir: RootDir) -> FileSystemResult<PathBuf> {
+        match self.0.get(&root_dir) {
+            Some(pathbuf_ref) => Ok(pathbuf_ref.clone()),
             None => Err(FileSystemError::GameDirectoryError(format!(
                 "The associated path for {:?} could not be found !",
                 root_dir
@@ -97,10 +96,10 @@ impl GameDirectories {
 
     pub fn construct_path_from_root(
         &self,
-        root_dir: &RootDir,
+        root_dir: RootDir,
         path: &str,
     ) -> FileSystemResult<PathBuf> {
-        let mut root_dir = self.path(root_dir)?.to_path_buf();
+        let mut root_dir = self.path(root_dir)?;
         root_dir.push(path);
         Ok(root_dir)
     }
