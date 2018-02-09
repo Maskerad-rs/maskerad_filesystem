@@ -8,6 +8,8 @@
 #[cfg(feature = "serde")]
 #[macro_use]
 extern crate serde;
+#[macro_use]
+extern crate log;
 
 extern crate remove_dir_all;
 

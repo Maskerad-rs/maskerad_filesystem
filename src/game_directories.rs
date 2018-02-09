@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::env;
 use filesystem_error::{FileSystemError, FileSystemResult};
+use std::fmt;
 
 //Enum used to specify the 'root' directory from where to write/delete/open dir/files
 #[derive(Debug, Eq, PartialEq, Hash, Copy, Clone)]
@@ -17,9 +18,34 @@ pub enum RootDir {
     WorkingDirectory,
     UserDataRoot,
     UserConfigRoot,
-    UserEngineConfigurationRoot,
-    UserLogRoot,
+    EngineConfigRoot,
+    EngineLogRoot,
     UserSaveRoot,
+}
+
+impl fmt::Display for RootDir {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            &RootDir::WorkingDirectory => {
+                write!(f, "current directory")
+            },
+            &RootDir::UserDataRoot => {
+                write!(f, "user data root")
+            },
+            &RootDir::UserConfigRoot => {
+                write!(f, "user config root")
+            },
+            &RootDir::EngineConfigRoot => {
+                write!(f, "engine config root")
+            },
+            &RootDir::EngineLogRoot => {
+                write!(f, "engine log root")
+            },
+            &RootDir::UserSaveRoot => {
+                write!(f, "user save root")
+            },
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -28,80 +54,64 @@ pub struct GameDirectories(HashMap<RootDir, PathBuf>);
 
 impl GameDirectories {
     pub fn new(game_name: &str, game_author: &str) -> FileSystemResult<Self> {
-        let user_config = if cfg!(target_os = "windows") {
-            let appdata = env::var("APPDATA")?;
-            PathBuf::from(format!(
-                "{}\'{}\'{}",
-                appdata.as_str(),
-                game_author,
-                game_name
-            ))
-        } else if cfg!(target_os = "macos") {
-            unimplemented!();
-        } else {
-            let home = env::var("HOME")?;
-            PathBuf::from(format!(
-                "{}/.config/{}",
-                home.as_str(),
-                game_name
-            ))
-        };
+        debug!("Creating a new GameDirectories with a game name of {}, created by {}", game_name, game_author);
+        trace!("Creating the user config path...");
+        let mut user_config = PathBuf::new();
+        trace!("Creating the user data path...");
+        let mut user_data = PathBuf::new();
 
-        let user_data = if cfg!(target_os = "windows") {
+        if cfg!(target_os = "windows") {
+            trace!("OS: Windows.");
+            trace!("Trying to get the value of the APPDATA environment variable.");
             let appdata = env::var("APPDATA")?;
-            PathBuf::from(format!(
-                "{}\'{}\'{}",
-                appdata.as_str(),
-                game_author,
-                game_name
-            ))
+
+            user_config = PathBuf::from(format!("{}\'{}\'{}", appdata.as_str(), game_author, game_name));
+            user_data = PathBuf::from(format!("{}\'{}\'{}", appdata.as_str(), game_author, game_name));
         } else if cfg!(target_os = "macos") {
+            trace!("OS: MacOS.");
             unimplemented!();
         } else {
+            trace!("OS: Unix/Linux/BSD.");
+            trace!("Trying to get the value of the HOME environment variable.");
             let home = env::var("HOME")?;
-            PathBuf::from(format!(
-                "{}/.local/share/{}",
-                home.as_str(),
-                game_name
-            ))
-        };
+
+            user_config = PathBuf::from(format!("{}/.config/{}/{}", home.as_str(), game_author, game_name));
+            user_data = PathBuf::from(format!("{}/.local/share/{}/{}", home.as_str(), game_author, game_name));
+        }
+
+        trace!("User config path: {}", user_config.display());
+        trace!("User data path: {}", user_data.display());
+
 
         let mut logs = user_config.clone();
         logs.push("maskerad_logs");
+        trace!("engine logs path: {}", logs.display());
+
         let mut engine_config = user_config.clone();
         engine_config.push("maskerad_configuration");
+        trace!("engine configuration path: {}", engine_config.display());
+
         let mut saves = user_data.clone();
         saves.push("game_saves");
-        let current = env::current_dir()?;
+        trace!("game saves path: {}", saves.display());
 
+        trace!("Trying to get the path of the current directory...");
+        let current = env::current_dir()?;
+        trace!("Current directory: {}", current.display());
+
+        trace!("Creating the hashmap associating the RootDir enumeration to those paths.");
         let mut directories = HashMap::with_capacity(6);
         directories.insert(RootDir::WorkingDirectory, current);
         directories.insert(RootDir::UserDataRoot, user_data);
         directories.insert(RootDir::UserConfigRoot, user_config);
-        directories.insert(RootDir::UserEngineConfigurationRoot, engine_config);
-        directories.insert(RootDir::UserLogRoot, logs);
+        directories.insert(RootDir::EngineConfigRoot, engine_config);
+        directories.insert(RootDir::EngineLogRoot, logs);
         directories.insert(RootDir::UserSaveRoot, saves);
-
+        trace!("GameDirectories structure successfully created.");
         Ok(GameDirectories(directories))
     }
 
-    pub fn path(&self, root_dir: RootDir) -> FileSystemResult<PathBuf> {
-        match self.0.get(&root_dir) {
-            Some(pathbuf_ref) => Ok(pathbuf_ref.clone()),
-            None => Err(FileSystemError::GameDirectoryError(format!(
-                "The associated path for {:?} could not be found !",
-                root_dir
-            ))),
-        }
-    }
-
-    pub fn construct_path_from_root(
-        &self,
-        root_dir: RootDir,
-        path: &str,
-    ) -> FileSystemResult<PathBuf> {
-        let mut root_dir = self.path(root_dir)?;
-        root_dir.push(path);
-        Ok(root_dir)
+    pub fn get(&self, k: &RootDir) -> Option<&PathBuf> {
+        self.0.get(k)
     }
 }
